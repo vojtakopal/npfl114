@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
+# 96662533-4252-11e9-b0fd-00505601122b
 import numpy as np
 
 if __name__ == "__main__":
+    data_dist = {}
     # Load data distribution, each data point on a line
     with open("numpy_entropy_data.txt", "r") as data:
         for line in data:
             line = line.rstrip("\n")
             # TODO: process the line, aggregating using Python data structures
+            if data_dist.get(line) == None:
+                data_dist[line] = 0
+            
+            data_dist[line] = data_dist[line] + 1
 
-    # TODO: Create a NumPy array containing the data distribution. The
-    # NumPy array should contain only data, not any mapping. If required,
-    # the NumPy array might be created after loading the model distribution.
+    data = np.array(list(data_dist.values()))
+    data = data / np.sum(data)
 
     # Load model distribution, each line `word \t probability`.
+    model_probs = {}
     with open("numpy_entropy_model.txt", "r") as model:
         for line in model:
             line = line.rstrip("\n")
-            # TODO: process the line, aggregating using Python data structures
+            [word, prob] = line.split("\t")
+            model_probs[word] = float(prob)
 
-    # TODO: Create a NumPy array containing the model distribution.
+    model = np.array([model_probs.get(k) or 0 for k in data_dist])
 
-    # TODO: Compute and print the entropy H(data distribution). You should not use
-    # manual for/while cycles, but instead use the fact that most NumPy methods
-    # operate on all elements (for example `*` is vector element-wise multiplication).
+    entropy = -np.sum(data * np.log(data))
     print("{:.2f}".format(entropy))
-
-    # TODO: Compute and print cross-entropy H(data distribution, model distribution)
-    # and KL-divergence D_KL(data distribution, model_distribution)
+    cross_entropy = -np.sum(data * np.log(model))
+    print("{:.2f}".format(cross_entropy))
+    d_kl = cross_entropy - entropy
+    print("{:.2f}".format(d_kl))

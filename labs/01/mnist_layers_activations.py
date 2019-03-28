@@ -38,14 +38,18 @@ args.logdir = "logs/{}-{}-{}".format(
 # Load data
 mnist = MNIST()
 
-# Create the model
-model = tf.keras.Sequential([
+layers = [
     tf.keras.layers.InputLayer((MNIST.H, MNIST.W, MNIST.C)),
     tf.keras.layers.Flatten(),
-    # TODO: Add `args.layers` number of hidden layers with size `args.hidden_layer`,
-    # using activation from `args.activation`, allowing "none", "relu", "tanh", "sigmoid".
-    tf.keras.layers.Dense(MNIST.LABELS, activation=tf.nn.softmax),
-])
+]
+
+hidden_layer_activation = None if args.activation == 'none' else args.activation
+layers += [tf.keras.layers.Dense(args.hidden_layer, activation=hidden_layer_activation) for i in range(0, args.layers)]
+
+layers.append(tf.keras.layers.Dense(MNIST.LABELS, activation=tf.nn.softmax))
+
+# Create the models
+model = tf.keras.Sequential(layers)
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(),
@@ -67,6 +71,6 @@ test_logs = model.evaluate(
 )
 tb_callback.on_epoch_end(1, dict(("test_" + metric, value) for metric, value in zip(model.metrics_names, test_logs)))
 
-# TODO: Write test accuracy as percentages rounded to two decimal places.
+accuracy = test_logs[1]
 with open("mnist_layers_activations.out", "w") as out_file:
     print("{:.2f}".format(100 * accuracy), file=out_file)
