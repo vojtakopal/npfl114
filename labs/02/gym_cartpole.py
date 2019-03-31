@@ -10,8 +10,9 @@ import tensorflow as tf
 # Parse arguments
 # TODO: Set reasonable defaults and possibly add more arguments.
 parser = argparse.ArgumentParser()
-parser.add_argument("--batch_size", default=None, type=int, help="Batch size.")
-parser.add_argument("--epochs", default=None, type=int, help="Number of epochs.")
+parser.add_argument("--batch_size", default=1, type=int, help="Batch size.")
+parser.add_argument("--epochs", default=100, type=int, help="Number of epochs.")
+parser.add_argument("--hidden_layer", default=50, type=int, help="Number of hidden layers.")
 parser.add_argument("--threads", default=1, type=int, help="Maximum number of threads to use.")
 args = parser.parse_args()
 
@@ -41,10 +42,16 @@ observations, labels = np.array(observations), np.array(labels)
 # However, beware that there is currently a bug in Keras which does
 # not correctly serialize InputLayer. Instead of using an InputLayer,
 # pass explicitly `input_shape` to the first real model layer.
-model = None
+kernel_regularizer=tf.keras.regularizers.l2(0.02)
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(args.hidden_layer, activation=tf.nn.relu, input_shape=[4]),
+    tf.keras.layers.Dense(args.hidden_layer, activation=tf.nn.relu, kernel_regularizer=kernel_regularizer),
+    tf.keras.layers.Dense(args.hidden_layer, activation=tf.nn.relu, kernel_regularizer=kernel_regularizer),
+    tf.keras.layers.Dense(2, activation=tf.nn.softmax),
+])
 
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )

@@ -66,8 +66,40 @@ model = tf.keras.Sequential([
 #   by using `model.optimizer.learning_rate(model.optimizer.iterations)`,
 #   so after training this value should be `args.learning_rate_final`.
 
+optimizer = args.optimizer
+if optimizer == 'SGD':
+    if args.momentum != None:
+        optimizer = tf.optimizers.SGD(momentum = args.momentum)
+    else:
+        optimizer = tf.optimizers.SGD()
+
+if optimizer == 'Adam':
+    optimizer = tf.optimizers.Adam()
+
+if args.decay == None:
+    optimizer.learning_rate = args.learning_rate
+
+used_learning_rate_schedule = False
+num_training_batches = args.epochs * len(mnist.train.data['labels']) / args.batch_size
+if args.decay == 'polynomial':
+    used_learning_rate_schedule = True
+    optimizer.learning_rate = tf.keras.optimizers.schedules.PolynomialDecay(
+        args.learning_rate,
+        num_training_batches,
+        args.learning_rate_final
+    )
+
+if args.decay == 'exponential':
+    used_learning_rate_schedule = True
+    decay_rate = args.learning_rate_final / args.learning_rate
+    optimizer.learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
+        args.learning_rate,
+        num_training_batches,
+        decay_rate
+    )
+
 model.compile(
-    optimizer=None,
+    optimizer=optimizer,
     loss=tf.keras.losses.SparseCategoricalCrossentropy(),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
@@ -86,6 +118,9 @@ test_logs = model.evaluate(
 )
 tb_callback.on_epoch_end(1, dict(("val_test_" + metric, value) for metric, value in zip(model.metrics_names, test_logs)))
 
-# TODO: Write test accuracy as percentages rounded to two decimal places.
+if used_learning_rate_schedule:
+    print(model.optimizer.learning_rate(model.optimizer.iterations))
+
+accuracy = test_logs[1]
 with open("mnist_training.out", "w") as out_file:
     print("{:.2f}".format(100 * accuracy), file=out_file)
